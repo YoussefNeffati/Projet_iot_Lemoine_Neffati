@@ -7,8 +7,7 @@ var path = require('path');
 //--- MQTT module
 const mqtt = require('mqtt')
 // Topics MQTT
-const TOPIC_LIGHT = 'my/sensors/projectlight'
-const TOPIC_TEMP  = 'my/sensors/projecttemperature'
+const TOPIC_LIGHT = 'iot/M1Miage2022'
 
 //---  The MongoDB module exports MongoClient, and that's what
 // we'll use to connect to a MongoDB database.
@@ -91,12 +90,6 @@ async function v0(){
 		    console.log('Node Server has subscribed to ', TOPIC_LIGHT);
 		}
 	    })
-	    client_mqtt.subscribe(TOPIC_TEMP, function (err) {
-		if (!err) {
-		    //client_mqtt.publish(TOPIC_TEMP, 'Hello mqtt')
-		    console.log('Node Server has subscribed to ', TOPIC_TEMP);
-		}
-	    })
 	})
 
 	//================================================================
@@ -110,14 +103,15 @@ async function v0(){
 
 	    // Parsing du message suppos� recu au format JSON
 	    message = JSON.parse(message);
-	    wh = message.who
-	    val = message.value
+	    const who = message.info["ident"]
+        const temp = message.status["temperature"]
+        const light = message.status["light"]
 
 	    // Debug : Gerer une liste de who pour savoir qui utilise le node server	
 	    let wholist = []
-	    var index = wholist.findIndex(x => x.who==wh)
+	    var index = wholist.findIndex(x => x.who==who)
 	    if (index === -1){
-		wholist.push({who:wh});	    
+		wholist.push({who});	    
 	    }
 	    console.log("wholist using the node server :", wholist);
 
@@ -130,7 +124,8 @@ async function v0(){
 	    var frTime = new Date().toLocaleString("sv-SE", {timeZone: "Europe/Paris"});
 	    var new_entry = { date: frTime, // timestamp the value 
 			      who: wh,      // identify ESP who provide 
-			      value: val    // this value
+			      valueTemp: temp,    // this value
+                  valueLight : light
 			    };
 	    
 	    // On recupere le nom basique du topic du message
@@ -214,27 +209,26 @@ app.get('/esp/:what', function (req, res) {
     // cf https://stackabuse.com/get-query-strings-and-parameters-in-express-js/
     console.log(req.originalUrl);
     
-    wh = req.query.who // get the "who" param from GET request
-    // => gives the Id of the ESP we look for in the db	
-    wa = req.params.what // get the "what" from the GET request : temp or light ?
-    
+    const {who} = req.query // get the "who" param from GET request
+    // => gives the Id of the ESP we look for in the db    
+    const {what} = req.params // get the "what" from the GET request : temp or light ?
     console.log("\n--------------------------------");
     console.log("A client/navigator ", req.ip);
     console.log("sending URL ",  req.originalUrl);
-    console.log("wants to GET ", wa);
-    console.log("values from object ", wh);
+    console.log("wants to GET ", what);
+    console.log("values from object ", who);
     
     // R�cup�ration des nb derniers samples stock�s dans
     // la collection associ�e a ce topic (wa) et a cet ESP (wh)
     const nb = 200;
-    key = wa
+    key = what
     //dbo.collection(key).find({who:wh}).toArray(function(err,result) {
-    dbo.collection(key).find({who:wh}).sort({_id:-1}).limit(nb).toArray(function(err, result) {
-	if (err) throw err;
-	console.log('get on', key);
-	console.log(result);
-	res.json(result.reverse()); // This is the response.
-	console.log('end find');
+    dbo.collection(key).find({who}).sort({_id:-1}).limit(nb).toArray(function(err, result) {
+    if (err) throw err;
+    console.log('get on', key);
+    console.log(result);
+    res.json(result.reverse()); // This is the response.
+    console.log('end find');
     });
     console.log('end app.get');
 });

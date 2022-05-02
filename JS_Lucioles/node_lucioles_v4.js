@@ -123,7 +123,7 @@ async function v0(){
 	    // var frTime = new Date().toLocaleString("fr-FR", {timeZone: "Europe/Paris"});
 	    var frTime = new Date().toLocaleString("sv-SE", {timeZone: "Europe/Paris"});
 	    var new_entry = { date: frTime, // timestamp the value 
-			      who: wh,      // identify ESP who provide 
+			      who,      // identify ESP who provide 
 			      valueTemp: temp,    // this value
                   valueLight : light
 			    };
